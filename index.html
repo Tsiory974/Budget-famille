@@ -314,7 +314,7 @@ main{padding:0 1.25rem calc(1.25rem + var(--safe-bottom));max-width:600px;margin
 <script>
 const API_KEY = '$2a$10$xFQHdueJe4x8BqZezMXN7uMe8cYwc8zKJNp6CfqQQNkm4wFd/5AAi';
 const BIN_NAME = 'budget-famille';
-let BIN_ID = localStorage.getItem('jsonbin_id') || null;
+let BIN_ID = localStorage.getItem('jsonbin_id') || '69cce5d436566621a86b631e';
 
 const CAT_COLORS={logement:'#378ADD',transport:'#BA7517',alimentation:'#1D9E75',loisirs:'#D4537E',sante:'#7F77DD',education:'#3B6D11',autre:'#888780'};
 const CAT_ICONS={logement:'🏠',transport:'🚗',alimentation:'🛒',loisirs:'🎬',sante:'💊',education:'📚',autre:'📦'};
@@ -389,15 +389,6 @@ function setSyncStatus(status, label){
 async function loadFromCloud(){
   setSyncStatus('loading','Chargement...');
   try {
-    if(!BIN_ID){
-      // Chercher un bin existant par nom
-      const r = await fetch('https://api.jsonbin.io/v3/b?limit=20',{
-        headers:{'X-Master-Key':API_KEY,'X-Access-Key':API_KEY}
-      });
-      // Si pas de bin trouvé, on crée
-      await createBin();
-      return;
-    }
     const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
       headers:{'X-Master-Key':API_KEY,'X-Access-Key':API_KEY}
     });
