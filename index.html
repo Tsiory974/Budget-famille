@@ -272,9 +272,9 @@ main{padding:0 1.25rem calc(1.25rem + var(--safe-bottom));max-width:600px;margin
 
 <div id="page-reglages" style="display:none;">
   <div class="card">
-    <div class="card-title">Synchronisation</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Les données sont synchronisées automatiquement entre tous vos appareils.</p>
-    <button onclick="syncNow()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">🔄 Synchroniser maintenant</button>
+    <div class="card-title">Sauvegarde locale</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Les données sont sauvegardées automatiquement sur cet appareil.</p>
+    <button onclick="syncNow()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">💾 Sauvegarder maintenant</button>
     <div id="sync-msg" style="font-size:13px;text-align:center;margin-top:8px;min-height:18px;"></div>
   </div>
   <div class="card">
@@ -312,9 +312,7 @@ main{padding:0 1.25rem calc(1.25rem + var(--safe-bottom));max-width:600px;margin
 </div>
 
 <script>
-const API_KEY = '$2a$10$xFQHdueJe4x8BqZezMXN7uMe8cYwc8zKJNp6CfqQQNkm4wFd/5AAi';
-const BIN_NAME = 'budget-famille';
-let BIN_ID = localStorage.getItem('jsonbin_id') || '69cce5d436566621a86b631e';
+// Sauvegarde locale automatique
 
 const CAT_COLORS={logement:'#378ADD',transport:'#BA7517',alimentation:'#1D9E75',loisirs:'#D4537E',sante:'#7F77DD',education:'#3B6D11',autre:'#888780'};
 const CAT_ICONS={logement:'🏠',transport:'🚗',alimentation:'🛒',loisirs:'🎬',sante:'💊',education:'📚',autre:'📦'};
@@ -385,61 +383,6 @@ function setSyncStatus(status, label){
   lbl.textContent=label;
 }
 
-// ── JSONBin API ──
-async function loadFromCloud(){
-  setSyncStatus('loading','Chargement...');
-  try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
-      headers:{'X-Master-Key':API_KEY,'X-Access-Key':API_KEY}
-    });
-    if(!r.ok) throw new Error('Erreur réseau');
-    const json = await r.json();
-    applyData(json.record);
-    setSyncStatus('ok','Synchronisé');
-  } catch(e){
-    setSyncStatus('err','Hors ligne');
-    updateAll();
-  }
-}
-
-async function createBin(){
-  const data = buildData();
-  try {
-    const r = await fetch('https://api.jsonbin.io/v3/b',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY,'X-Access-Key':API_KEY,'X-Bin-Name':BIN_NAME,'X-Bin-Private':'false'},
-      body: JSON.stringify(data)
-    });
-    if(!r.ok) throw new Error();
-    const json = await r.json();
-    BIN_ID = json.metadata.id;
-    localStorage.setItem('jsonbin_id', BIN_ID);
-    setSyncStatus('ok','Synchronisé');
-    updateAll();
-  } catch(e){
-    setSyncStatus('err','Erreur création');
-    updateAll();
-  }
-}
-
-async function pushToCloud(){
-  if(!BIN_ID){ await createBin(); return; }
-  setSyncStatus('loading','Sauvegarde...');
-  try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY,'X-Access-Key':API_KEY},
-      body: JSON.stringify(buildData())
-    });
-    if(!r.ok) throw new Error();
-    setSyncStatus('ok','Synchronisé');
-    const msg=document.getElementById('sync-msg');
-    if(msg){msg.style.color='var(--green)';msg.textContent='✓ Données sauvegardées !';setTimeout(()=>{msg.textContent='';},2500);}
-  } catch(e){
-    setSyncStatus('err','Erreur sauvegarde');
-  }
-}
-
 function buildData(){
   return {
     salaires:{doo:parseFloat(document.getElementById('sal-doo').value)||0,bebou:parseFloat(document.getElementById('sal-bebou').value)||0},
@@ -447,25 +390,48 @@ function buildData(){
   };
 }
 
-function applyData(data){
-  if(data.salaires){
-    document.getElementById('sal-doo').value=data.salaires.doo||0;
-    document.getElementById('sal-bebou').value=data.salaires.bebou||0;
+function saveLocal(){
+  try {
+    localStorage.setItem('budget_data', JSON.stringify(buildData()));
+    setSyncStatus('ok','Sauvegardé');
+  } catch(e){
+    setSyncStatus('err','Erreur sauvegarde');
   }
-  if(data.depenses&&Array.isArray(data.depenses)) depenses=data.depenses;
+}
+
+function loadLocal(){
+  try {
+    const raw = localStorage.getItem('budget_data');
+    if(raw){
+      const data = JSON.parse(raw);
+      if(data.salaires){
+        document.getElementById('sal-doo').value = data.salaires.doo||0;
+        document.getElementById('sal-bebou').value = data.salaires.bebou||0;
+      }
+      if(data.depenses && Array.isArray(data.depenses)) depenses = data.depenses;
+      setSyncStatus('ok','Données chargées');
+    } else {
+      setSyncStatus('ok','Prêt');
+    }
+  } catch(e){
+    setSyncStatus('err','Erreur chargement');
+  }
   updateAll();
 }
 
 function saveAndSync(){
   updateAll();
   clearTimeout(syncTimer);
-  syncTimer=setTimeout(pushToCloud, 1500);
+  syncTimer = setTimeout(saveLocal, 800);
 }
 
 function syncNow(){
-  if(BIN_ID) loadFromCloud();
-  else createBin();
+  saveLocal();
+  const msg=document.getElementById('sync-msg');
+  if(msg){msg.style.color='var(--green)';msg.textContent='✓ Sauvegardé sur cet appareil !';setTimeout(()=>{msg.textContent='';},2500);}
 }
+
+function loadFromCloud(){ loadLocal(); }
 
 // ── CALCULS ──
 function calcTotals(){
