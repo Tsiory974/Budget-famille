@@ -274,7 +274,14 @@ main{padding:0 1.25rem calc(1.25rem + var(--safe-bottom));max-width:600px;margin
   <div class="card">
     <div class="card-title">Sauvegarde locale</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Les données sont sauvegardées automatiquement sur cet appareil.</p>
-    <button onclick="syncNow()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">💾 Sauvegarder maintenant</button>
+    <button onclick="syncNow()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px;">💾 Sauvegarder maintenant</button>
+    <div style="display:flex;gap:10px;">
+      <button onclick="exportJSON()" style="flex:1;padding:11px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">⬇ Exporter</button>
+      <label style="flex:1;padding:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;text-align:center;">
+        ⬆ Importer
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"/>
+      </label>
+    </div>
     <div id="sync-msg" style="font-size:13px;text-align:center;margin-top:8px;min-height:18px;"></div>
   </div>
   <div class="card">
@@ -601,6 +608,42 @@ function deleteDepense(id){
   if(!confirm('Supprimer cette dépense ?'))return;
   depenses=depenses.filter(d=>d.id!==id);
   saveAndSync();
+}
+
+function exportJSON(){
+  const data = buildData();
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'budget-famille-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event){
+  const file = event.target.files[0];
+  const msg  = document.getElementById('sync-msg');
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.salaires){
+        document.getElementById('sal-doo').value   = data.salaires.doo||0;
+        document.getElementById('sal-bebou').value = data.salaires.bebou||0;
+      }
+      if(data.depenses && Array.isArray(data.depenses)) depenses = data.depenses;
+      saveLocal();
+      updateAll();
+      msg.style.color='var(--green)'; msg.textContent='✓ Données importées et sauvegardées !';
+      setTimeout(()=>{msg.textContent='';},3000);
+    } catch(err){
+      msg.style.color='var(--red)'; msg.textContent='Erreur : fichier JSON invalide.';
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
 }
 
 function updateAll(){updateVue();updateDepenses();updateComptes();updateReglages();}
