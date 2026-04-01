@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Budget"/>
+<meta name="theme-color" content="#F5F4F0"/>
+<title>Budget Famille</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231A1A18'/><text y='.9em' font-size='72' x='12'>💰</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#F5F4F0;--surface:#FFFFFF;--surface2:#EDECE8;
+  --text:#1A1A18;--text2:#6B6B66;--text3:#A5A59E;
+  --border:rgba(0,0,0,0.08);
+  --green:#1D9E75;--red:#D85A30;--blue:#378ADD;
+  --doo:#378ADD;--bebou:#D4537E;
+  --principal:#BA7517;--bourso:#1D9E75;--revolut:#7F77DD;
+  --r:14px;--rsm:8px;
+  --safe-top:env(safe-area-inset-top);
+  --safe-bottom:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+
+/* LOCK SCREEN */
+#lock-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.lock-box{background:var(--surface);border-radius:24px;border:1px solid var(--border);padding:2.5rem 2rem;width:100%;max-width:340px;text-align:center;}
+.lock-icon{font-size:48px;margin-bottom:1rem;}
+.lock-title{font-size:20px;font-weight:600;margin-bottom:6px;letter-spacing:-.02em;}
+.lock-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;}
+.lock-input{width:100%;padding:12px 16px;font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:.2em;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;transition:border-color .2s;margin-bottom:12px;}
+.lock-input:focus{border-color:var(--blue);}
+.lock-btn{width:100%;padding:13px;background:var(--text);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:opacity .2s;}
+.lock-btn:active{opacity:.8;}
+.lock-err{font-size:13px;color:var(--red);margin-top:10px;min-height:18px;}
+.lock-hint{font-size:11px;color:var(--text3);margin-top:14px;}
+
+/* APP */
+#app{display:none;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:calc(.9rem + var(--safe-top)) 1.25rem .9rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-size:16px;font-weight:600;letter-spacing:-.02em;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.avatars{display:flex;gap:6px;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+.av.doo{background:var(--doo);}.av.bebou{background:var(--bebou);}
+.logout-btn{background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:4px;}
+.tabs-nav{display:flex;background:var(--surface2);border-radius:12px;padding:4px;gap:2px;margin:1.25rem 1.25rem .2rem;}
+.tnav{flex:1;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;padding:8px 4px;border:none;background:transparent;border-radius:9px;cursor:pointer;color:var(--text2);transition:all .2s;}
+.tnav.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+main{padding:0 1.25rem calc(1.25rem + var(--safe-bottom));max-width:600px;margin:0 auto;}
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:1rem 1.25rem;margin-bottom:1rem;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px;}
+.mgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:1rem;}
+.mgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem;}
+.metric{background:var(--surface);border-radius:var(--r);padding:12px 14px;border:1px solid var(--border);}
+.metric-label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.metric-value{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.prog-wrap{height:5px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:6px;}
+.prog-fill{height:5px;border-radius:4px;transition:width .5s ease;}
+.reste-pos{color:var(--green);}.reste-neg{color:var(--red);}
+.flow-person{margin-bottom:18px;}
+.flow-person-label{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.flow-accounts{display:flex;gap:8px;flex-wrap:wrap;}
+.flow-account{flex:1;min-width:130px;border-radius:var(--rsm);border:1px solid var(--border);padding:10px 12px;}
+.flow-account.principal{border-left:3px solid var(--principal);}
+.flow-account.bourso{border-left:3px solid var(--bourso);}
+.flow-account.revolut{border-left:3px solid var(--revolut);}
+.fa-bank{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.fa-bank.principal{color:var(--principal);}.fa-bank.bourso{color:var(--bourso);}.fa-bank.revolut{color:var(--revolut);}
+.fa-label{font-size:12px;color:var(--text2);margin-bottom:2px;}
+.fa-amount{font-family:'DM Mono',monospace;font-size:16px;font-weight:600;}
+.fa-desc{font-size:11px;color:var(--text3);margin-top:3px;}
+.dep-table{width:100%;border-collapse:collapse;font-size:13px;}
+.dep-table th{font-size:11px;font-weight:500;color:var(--text3);text-align:left;padding:0 6px 8px 0;text-transform:uppercase;letter-spacing:.04em;}
+.dep-table th:not(:first-child){text-align:right;}
+.dep-table td{padding:8px 6px 8px 0;border-top:1px solid var(--border);vertical-align:middle;}
+.dep-table td:not(:first-child){text-align:right;}
+.dep-table tr:first-child td{border-top:none;}
+.cat-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+.dep-name{display:flex;align-items:center;}
+.amt{font-family:'DM Mono',monospace;font-weight:500;}
+.amt.zero{color:var(--text3);}
+.date-badge{font-size:11px;font-family:'DM Mono',monospace;background:var(--surface2);padding:2px 6px;border-radius:20px;color:var(--text2);}
+.acc-badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:20px;display:inline-block;}
+.acc-badge.bourso{background:rgba(29,158,117,.1);color:var(--bourso);}
+.acc-badge.revolut{background:rgba(127,119,221,.1);color:var(--revolut);}
+.acc-badge.principal{background:rgba(186,117,23,.1);color:var(--principal);}
+.acc-badge.les2{background:rgba(186,117,23,.1);color:var(--principal);}
+.form-group{margin-bottom:10px;}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.04em;}
+.form-group input,.form-group select{width:100%;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--blue);}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.btn-primary{width:100%;padding:12px;background:var(--text);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:6px;transition:opacity .2s;}
+.btn-primary:active{opacity:.8;}
+.form-msg{font-size:13px;text-align:center;margin-top:8px;min-height:18px;}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:0 4px;line-height:1;transition:color .2s;}
+.del-btn:hover{color:var(--red);}
+.sal-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.sal-label{font-size:13px;font-weight:500;flex:1;}
+.sal-input{width:110px;padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;text-align:right;}
+.sal-input:focus{border-color:var(--blue);}
+.dep-edit-input{width:72px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;text-align:right;}
+.dep-edit-input:focus{border-color:var(--blue);}
+.empty{text-align:center;color:var(--text3);font-size:13px;padding:1.5rem 0;}
+.spacer{height:20px;}
+.divider{height:1px;background:var(--border);margin:12px 0;}
+.pwd-change-row{display:flex;gap:8px;margin-top:10px;}
+.pwd-change-row input{flex:1;padding:9px 12px;font-family:'DM Mono',monospace;font-size:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;letter-spacing:.1em;}
+.pwd-change-row input:focus{border-color:var(--blue);}
+.pwd-save-btn{padding:9px 16px;background:var(--text);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- ECRAN DE CONNEXION -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-icon">💰</div>
+    <div class="lock-title">Budget Famille</div>
+    <div class="lock-sub">Entrez votre mot de passe pour accéder</div>
+    <input class="lock-input" type="password" id="pwd-input" placeholder="••••••" maxlength="20"
+      onkeydown="if(event.key==='Enter') checkPwd()"/>
+    <button class="lock-btn" onclick="checkPwd()">Accéder</button>
+    <div class="lock-err" id="lock-err"></div>
+    <div class="lock-hint">Accès réservé à Doo & Bebou</div>
+  </div>
+</div>
+
+<!-- APPLICATION -->
+<div id="app">
+<header>
+  <div class="logo">💰 Budget Famille</div>
+  <div class="header-right">
+    <div class="avatars">
+      <div class="av doo">D</div>
+      <div class="av bebou">B</div>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="Se déconnecter">🔒</button>
+  </div>
+</header>
+
+<div class="tabs-nav">
+  <button class="tnav active" onclick="switchPage('vue')">Vue globale</button>
+  <button class="tnav" onclick="switchPage('depenses')">Dépenses</button>
+  <button class="tnav" onclick="switchPage('comptes')">Comptes</button>
+  <button class="tnav" onclick="switchPage('reglages')">Réglages</button>
+</div>
+
+<main>
+
+<!-- VUE GLOBALE -->
+<div id="page-vue">
+  <div class="mgrid2">
+    <div class="metric">
+      <div class="metric-label">Salaire Doo</div>
+      <div class="metric-value" style="color:var(--doo)" id="disp-sal-doo">—</div>
+      <div class="metric-sub">mensuel net</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Salaire Bebou</div>
+      <div class="metric-value" style="color:var(--bebou)" id="disp-sal-bebou">—</div>
+      <div class="metric-sub">mensuel net</div>
+    </div>
+  </div>
+  <div class="mgrid3">
+    <div class="metric">
+      <div class="metric-label">Total charges</div>
+      <div class="metric-value" id="disp-total">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Part Doo</div>
+      <div class="metric-value" style="color:var(--doo)" id="disp-part-doo">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Part Bebou</div>
+      <div class="metric-value" style="color:var(--bebou)" id="disp-part-bebou">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Ce qu'il reste après charges</div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span style="font-size:13px;display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--doo);display:inline-block;"></span>Doo</span>
+          <span class="amt" id="disp-reste-doo" style="font-size:15px;">—</span>
+        </div>
+        <div class="prog-wrap"><div class="prog-fill" id="prog-doo" style="background:var(--doo);width:0%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span style="font-size:13px;display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--bebou);display:inline-block;"></span>Bebou</span>
+          <span class="amt" id="disp-reste-bebou" style="font-size:15px;">—</span>
+        </div>
+        <div class="prog-wrap"><div class="prog-fill" id="prog-bebou" style="background:var(--bebou);width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Répartition par catégorie</div>
+    <div style="position:relative;width:100%;height:200px;"><canvas id="pieChart"></canvas></div>
+    <div id="pie-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- DEPENSES -->
+<div id="page-depenses" style="display:none;">
+  <div class="card">
+    <div class="card-title">Dépenses fixes mensuelles</div>
+    <table class="dep-table">
+      <thead><tr><th>Dépense</th><th>Doo</th><th>Bebou</th><th>Total</th><th>Jour</th></tr></thead>
+      <tbody id="dep-tbody"></tbody>
+      <tfoot id="dep-tfoot"></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Ajouter une dépense fixe</div>
+    <div class="form-group">
+      <label class="form-label">Nom</label>
+      <input type="text" id="new-name" placeholder="Ex : Salle de sport"/>
+    </div>
+    <div class="form-row3">
+      <div class="form-group">
+        <label class="form-label">Montant Doo</label>
+        <input type="number" id="new-doo" placeholder="0" min="0" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Montant Bebou</label>
+        <input type="number" id="new-bebou" placeholder="0" min="0" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jour prélèv.</label>
+        <input type="number" id="new-date" placeholder="ex: 10" min="1" max="31"/>
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <select id="new-cat">
+          <option value="logement">🏠 Logement</option>
+          <option value="transport">🚗 Transport</option>
+          <option value="alimentation">🛒 Alimentation</option>
+          <option value="loisirs">🎬 Loisirs</option>
+          <option value="sante">💊 Santé</option>
+          <option value="education">📚 Éducation</option>
+          <option value="autre">📦 Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Compte débité</label>
+        <select id="new-compte">
+          <option value="bourso">Boursorama Doo</option>
+          <option value="revolut_doo">Revolut Doo</option>
+          <option value="revolut_bebou">Revolut Bebou</option>
+          <option value="principal_doo">Principal Doo</option>
+          <option value="principal_bebou">Principal Bebou</option>
+          <option value="les2">Bourso + Revolut</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="addDepense()">+ Ajouter</button>
+    <div class="form-msg" id="dep-msg"></div>
+  </div>
+</div>
+
+<!-- COMPTES -->
+<div id="page-comptes" style="display:none;">
+  <div class="card">
+    <div class="card-title">Flux de virements mensuels</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">Depuis le compte principal (salaire) vers chaque compte</p>
+    <div class="flow-person">
+      <div class="flow-person-label">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--doo);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;">D</span>Doo
+      </div>
+      <div class="flow-accounts">
+        <div class="flow-account principal">
+          <div class="fa-bank principal">Compte principal</div>
+          <div class="fa-label">Salaire reçu</div>
+          <div class="fa-amount" id="fa-principal-doo">—</div>
+          <div class="fa-desc" style="margin-top:6px;">Reste après sorties</div>
+          <div class="fa-amount" id="fa-principal-doo-reste" style="font-size:14px;margin-top:3px;">—</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex:2;">
+          <div class="flow-account principal">
+            <div class="fa-bank principal">Principal Doo</div>
+            <div class="fa-label">Débité directement</div>
+            <div class="fa-amount" style="color:var(--principal)" id="fa-doo-principal-dep">—</div>
+          </div>
+          <div class="flow-account bourso">
+            <div class="fa-bank bourso">Boursorama Doo</div>
+            <div class="fa-label">Virement mensuel</div>
+            <div class="fa-amount" style="color:var(--bourso)" id="fa-doo-to-bourso">—</div>
+          </div>
+          <div class="flow-account revolut">
+            <div class="fa-bank revolut">Revolut Doo</div>
+            <div class="fa-label">Virement mensuel</div>
+            <div class="fa-amount" style="color:var(--revolut)" id="fa-doo-to-revolut-doo">—</div>
+          </div>
+          <div class="flow-account revolut">
+            <div class="fa-bank revolut">Revolut Bebou</div>
+            <div class="fa-label">Virement mensuel</div>
+            <div class="fa-amount" style="color:var(--revolut)" id="fa-doo-to-revolut-bebou">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="flow-person" style="margin-top:16px;">
+      <div class="flow-person-label">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--bebou);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;">B</span>Bebou
+      </div>
+      <div class="flow-accounts">
+        <div class="flow-account principal">
+          <div class="fa-bank principal">Compte principal</div>
+          <div class="fa-label">Salaire reçu</div>
+          <div class="fa-amount" id="fa-principal-bebou">—</div>
+          <div class="fa-desc" style="margin-top:6px;">Reste après sorties</div>
+          <div class="fa-amount" id="fa-principal-bebou-reste" style="font-size:14px;margin-top:3px;">—</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex:2;">
+          <div class="flow-account principal">
+            <div class="fa-bank principal">Principal Bebou</div>
+            <div class="fa-label">Débité directement</div>
+            <div class="fa-amount" style="color:var(--principal)" id="fa-bebou-principal-dep">—</div>
+          </div>
+          <div class="flow-account bourso">
+            <div class="fa-bank bourso">Boursorama Doo</div>
+            <div class="fa-label">Virement mensuel</div>
+            <div class="fa-amount" style="color:var(--bourso)" id="fa-bebou-to-bourso">—</div>
+          </div>
+          <div class="flow-account revolut">
+            <div class="fa-bank revolut">Revolut Doo</div>
+            <div class="fa-label">Virement mensuel</div>
+            <div class="fa-amount" style="color:var(--revolut)" id="fa-bebou-to-revolut-doo">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Calendrier des prélèvements</div>
+    <div id="cal-list"></div>
+  </div>
+</div>
+
+<!-- REGLAGES -->
+<div id="page-reglages" style="display:none;">
+  <div class="card">
+    <div class="card-title">Sauvegarde des données</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Exportez pour sauvegarder, importez pour restaurer.</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="exportJSON()" style="flex:1;padding:11px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">⬇ Exporter</button>
+      <label style="flex:1;padding:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;text-align:center;">
+        ⬆ Importer
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"/>
+      </label>
+    </div>
+    <div id="import-msg" style="font-size:13px;text-align:center;margin-top:8px;min-height:18px;"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Mot de passe</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Changer le mot de passe d'accès à l'application.</p>
+    <div class="pwd-change-row">
+      <input type="password" id="new-pwd" placeholder="Nouveau mot de passe" maxlength="20"/>
+      <button class="pwd-save-btn" onclick="changePwd()">Sauver</button>
+    </div>
+    <div id="pwd-msg" style="font-size:13px;margin-top:8px;min-height:18px;"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Salaires mensuels nets</div>
+    <div class="sal-row">
+      <div class="av doo" style="flex-shrink:0">D</div>
+      <span class="sal-label">Salaire Doo</span>
+      <input class="sal-input" type="number" id="sal-doo" value="1977" min="0" step="1" onchange="updateAll()"/>
+      <span style="font-size:13px;color:var(--text2);">€</span>
+    </div>
+    <div class="sal-row">
+      <div class="av bebou" style="flex-shrink:0">B</div>
+      <span class="sal-label">Salaire Bebou</span>
+      <input class="sal-input" type="number" id="sal-bebou" value="1500" min="0" step="1" onchange="updateAll()"/>
+      <span style="font-size:13px;color:var(--text2);">€</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Modifier les montants — Doo / Bebou</div>
+    <div id="edit-depenses"></div>
+  </div>
+</div>
+
+<div class="spacer"></div>
+</main>
+</div>
+
+<script>
+const CAT_COLORS={logement:'#378ADD',transport:'#BA7517',alimentation:'#1D9E75',loisirs:'#D4537E',sante:'#7F77DD',education:'#3B6D11',autre:'#888780'};
+const CAT_ICONS={logement:'🏠',transport:'🚗',alimentation:'🛒',loisirs:'🎬',sante:'💊',education:'📚',autre:'📦'};
+const ACC_LABELS={bourso:'Boursorama Doo',revolut_doo:'Revolut Doo',revolut_bebou:'Revolut Bebou',principal_doo:'Principal Doo',principal_bebou:'Principal Bebou',les2:'Bourso + Revolut'};
+
+// Mot de passe stocké dans localStorage, par défaut "famille"
+const DEFAULT_PWD = 'famille';
+function getPwd(){ return localStorage.getItem('budget_pwd') || DEFAULT_PWD; }
+
+function checkPwd(){
+  const val = document.getElementById('pwd-input').value;
+  const err = document.getElementById('lock-err');
+  if(val === getPwd()){
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+    err.textContent = '';
+    updateAll();
+  } else {
+    err.textContent = 'Mot de passe incorrect, réessayez.';
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+function logout(){
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('pwd-input').focus();
+}
+
+function changePwd(){
+  const val = document.getElementById('new-pwd').value.trim();
+  const msg = document.getElementById('pwd-msg');
+  if(!val || val.length < 4){ msg.style.color='var(--red)'; msg.textContent='Minimum 4 caractères.'; return; }
+  localStorage.setItem('budget_pwd', val);
+  document.getElementById('new-pwd').value = '';
+  msg.style.color='var(--green)'; msg.textContent='✓ Mot de passe mis à jour !';
+  setTimeout(()=>{ msg.textContent=''; }, 3000);
+}
+
+let depenses=[
+  {id:1, name:'Téléphone',         doo:9.74,  bebou:9.74, cat:'autre',        compte:'bourso',       date:15},
+  {id:2, name:'Internet maison',   doo:29.99, bebou:0,    cat:'autre',        compte:'bourso',       date:25},
+  {id:3, name:'Assurance voiture', doo:35,    bebou:52,   cat:'transport',    compte:'bourso',       date:10},
+  {id:4, name:'Crédit',            doo:0,     bebou:436,  cat:'logement',     compte:'revolut_bebou',date:10},
+  {id:5, name:'Eau',               doo:0,     bebou:26,   cat:'logement',     compte:'revolut_bebou',date:10},
+  {id:6, name:'Électricité',       doo:35,    bebou:0,    cat:'logement',     compte:'bourso',       date:27},
+  {id:7, name:'Loyer',             doo:786,   bebou:0,    cat:'logement',     compte:'bourso',       date:28},
+  {id:8, name:'Cours',             doo:200,   bebou:200,  cat:'education',    compte:'revolut_doo',  date:0},
+  {id:9, name:'Voiture',           doo:40,    bebou:40,   cat:'transport',    compte:'revolut_doo',  date:0},
+  {id:10,name:'Shasha',            doo:20,    bebou:20,   cat:'autre',        compte:'revolut_doo',  date:0},
+  {id:11,name:'Netflix',           doo:7.99,  bebou:0,    cat:'loisirs',      compte:'bourso',       date:15},
+  {id:12,name:'YouTube',           doo:6.61,  bebou:0,    cat:'loisirs',      compte:'bourso',       date:26},
+  {id:13,name:'Dépense Bebou',     doo:0,     bebou:100,  cat:'autre',        compte:'revolut_bebou',date:10},
+  {id:14,name:'Repas Doo',         doo:90,    bebou:0,    cat:'alimentation', compte:'revolut_doo',  date:25},
+];
+
+let pieChart=null;
+function fmt(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function getSal(){return{doo:parseFloat(document.getElementById('sal-doo').value)||0,bebou:parseFloat(document.getElementById('sal-bebou').value)||0};}
+function sum(compte,who){return depenses.filter(d=>d.compte===compte).reduce((s,d)=>s+d[who],0);}
+
+function calcTotals(){
+  let doo=0,bebou=0;
+  depenses.forEach(d=>{doo+=d.doo;bebou+=d.bebou;});
+  return{doo,bebou,grand:doo+bebou};
+}
+
+function updateVue(){
+  const sal=getSal();
+  const t=calcTotals();
+  document.getElementById('disp-sal-doo').textContent=Math.round(sal.doo).toLocaleString('fr-FR')+' €';
+  document.getElementById('disp-sal-bebou').textContent=Math.round(sal.bebou).toLocaleString('fr-FR')+' €';
+  document.getElementById('disp-total').textContent=fmt(t.grand);
+  document.getElementById('disp-part-doo').textContent=fmt(t.doo);
+  document.getElementById('disp-part-bebou').textContent=fmt(t.bebou);
+  const rd=sal.doo-t.doo,rb=sal.bebou-t.bebou;
+  const rdEl=document.getElementById('disp-reste-doo');
+  const rbEl=document.getElementById('disp-reste-bebou');
+  rdEl.textContent=fmt(rd); rdEl.className='amt '+(rd>=0?'reste-pos':'reste-neg');
+  rbEl.textContent=fmt(rb); rbEl.className='amt '+(rb>=0?'reste-pos':'reste-neg');
+  document.getElementById('prog-doo').style.width=sal.doo>0?Math.max(0,Math.min(100,Math.round(rd/sal.doo*100)))+'%':'0%';
+  document.getElementById('prog-bebou').style.width=sal.bebou>0?Math.max(0,Math.min(100,Math.round(rb/sal.bebou*100)))+'%':'0%';
+  buildPie();
+}
+
+function buildPie(){
+  const bycat={};
+  depenses.forEach(d=>{bycat[d.cat]=(bycat[d.cat]||0)+d.doo+d.bebou;});
+  const cats=Object.keys(bycat),vals=cats.map(c=>bycat[c]),colors=cats.map(c=>CAT_COLORS[c]||'#888780');
+  const total=vals.reduce((s,v)=>s+v,0);
+  document.getElementById('pie-legend').innerHTML=cats.map((c,i)=>
+    `<span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);">
+      <span style="width:9px;height:9px;border-radius:50%;background:${colors[i]};display:inline-block;flex-shrink:0;"></span>
+      ${CAT_ICONS[c]||''} ${c} ${total?Math.round(vals[i]/total*100):0}%
+    </span>`).join('');
+  const ctx=document.getElementById('pieChart').getContext('2d');
+  if(pieChart)pieChart.destroy();
+  pieChart=new Chart(ctx,{type:'doughnut',
+    data:{labels:cats,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${CAT_ICONS[c.label]||''} ${c.label}: ${fmt(c.raw)}`}}}}
+  });
+}
+
+function updateDepenses(){
+  document.getElementById('dep-tbody').innerHTML=depenses.map(d=>{
+    const color=CAT_COLORS[d.cat]||'#888780';
+    const accKey=d.compte==='revolut_doo'||d.compte==='revolut_bebou'?'revolut':d.compte==='principal_doo'||d.compte==='principal_bebou'?'principal':d.compte==='les2'?'les2':'bourso';
+    return `<tr>
+      <td><div class="dep-name"><span class="cat-dot" style="background:${color}"></span>${d.name}</div>
+          <span class="acc-badge ${accKey}" style="margin-top:2px;">${ACC_LABELS[d.compte]||d.compte}</span></td>
+      <td class="amt ${d.doo===0?'zero':''}">${d.doo===0?'—':fmt(d.doo)}</td>
+      <td class="amt ${d.bebou===0?'zero':''}">${d.bebou===0?'—':fmt(d.bebou)}</td>
+      <td class="amt">${fmt(d.doo+d.bebou)}</td>
+      <td style="white-space:nowrap;">
+        ${d.date>0?`<span class="date-badge">${d.date}</span>`:'<span style="color:var(--text3);font-size:12px;">—</span>'}
+        <button class="del-btn" onclick="deleteDepense(${d.id})">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+  const t=calcTotals();
+  document.getElementById('dep-tfoot').innerHTML=`<tr>
+    <td style="padding-top:10px;font-weight:600;font-size:13px;border-top:2px solid var(--border);">Total</td>
+    <td class="amt" style="padding-top:10px;border-top:2px solid var(--border);">${fmt(t.doo)}</td>
+    <td class="amt" style="padding-top:10px;border-top:2px solid var(--border);">${fmt(t.bebou)}</td>
+    <td class="amt" style="padding-top:10px;border-top:2px solid var(--border);">${fmt(t.grand)}</td>
+    <td style="border-top:2px solid var(--border);padding-top:10px;"></td>
+  </tr>`;
+}
+
+function updateComptes(){
+  const sal=getSal();
+  const doo={
+    principal: sum('principal_doo','doo'),
+    bourso:    sum('bourso','doo'),
+    rev_doo:   sum('revolut_doo','doo'),
+    rev_bebou: sum('revolut_bebou','doo'),
+  };
+  const beb={
+    principal: sum('principal_bebou','bebou'),
+    bourso:    sum('bourso','bebou'),
+    rev_doo:   sum('revolut_doo','bebou'),
+    rev_bebou: sum('revolut_bebou','bebou'),
+  };
+  const totalDoo=doo.principal+doo.bourso+doo.rev_doo+doo.rev_bebou;
+  const totalBebou=beb.principal+beb.bourso+beb.rev_doo+beb.rev_bebou;
+  const resteDoo=sal.doo-totalDoo;
+  const resteBebou=sal.bebou-totalBebou;
+
+  document.getElementById('fa-principal-doo').textContent=Math.round(sal.doo).toLocaleString('fr-FR')+' €';
+  const rdEl=document.getElementById('fa-principal-doo-reste');
+  rdEl.textContent=fmt(resteDoo); rdEl.className='fa-amount '+(resteDoo>=0?'reste-pos':'reste-neg');
+  document.getElementById('fa-doo-principal-dep').textContent=doo.principal>0?fmt(doo.principal):'—';
+  document.getElementById('fa-doo-to-bourso').textContent=doo.bourso>0?fmt(doo.bourso):'—';
+  document.getElementById('fa-doo-to-revolut-doo').textContent=doo.rev_doo>0?fmt(doo.rev_doo):'—';
+  document.getElementById('fa-doo-to-revolut-bebou').textContent=doo.rev_bebou>0?fmt(doo.rev_bebou):'—';
+
+  document.getElementById('fa-principal-bebou').textContent=Math.round(sal.bebou).toLocaleString('fr-FR')+' €';
+  const rbEl=document.getElementById('fa-principal-bebou-reste');
+  rbEl.textContent=fmt(resteBebou); rbEl.className='fa-amount '+(resteBebou>=0?'reste-pos':'reste-neg');
+  document.getElementById('fa-bebou-principal-dep').textContent=beb.principal>0?fmt(beb.principal):'—';
+  document.getElementById('fa-bebou-to-bourso').textContent=beb.bourso>0?fmt(beb.bourso):'—';
+  document.getElementById('fa-bebou-to-revolut-doo').textContent=beb.rev_doo>0?fmt(beb.rev_doo):'—';
+
+  const sorted=[...depenses].filter(d=>d.date>0).sort((a,b)=>a.date-b.date);
+  document.getElementById('cal-list').innerHTML=sorted.length?sorted.map(d=>{
+    const color=CAT_COLORS[d.cat]||'#888780';
+    const accKey=d.compte==='revolut_doo'||d.compte==='revolut_bebou'?'revolut':d.compte==='principal_doo'||d.compte==='principal_bebou'?'principal':d.compte==='les2'?'les2':'bourso';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;min-width:22px;color:var(--text2);">${d.date}</span>
+      <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+      <span style="flex:1;font-size:13px;">${d.name}</span>
+      <span class="acc-badge ${accKey}">${ACC_LABELS[d.compte]||d.compte}</span>
+      <span class="amt" style="font-size:13px;">${fmt(d.doo+d.bebou)}</span>
+    </div>`;
+  }).join(''):'<div class="empty">Aucun prélèvement programmé</div>';
+}
+
+function updateReglages(){
+  const opts=[
+    {v:'bourso',l:'Boursorama Doo'},{v:'revolut_doo',l:'Revolut Doo'},
+    {v:'revolut_bebou',l:'Revolut Bebou'},{v:'principal_doo',l:'Principal Doo'},
+    {v:'principal_bebou',l:'Principal Bebou'},{v:'les2',l:'Bourso + Revolut'},
+  ];
+  document.getElementById('edit-depenses').innerHTML=depenses.map(d=>{
+    const optHtml=opts.map(o=>`<option value="${o.v}"${d.compte===o.v?' selected':''}>${o.l}</option>`).join('');
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px;">${CAT_ICONS[d.cat]||'📦'} ${d.name}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Doo (€)</span>
+          <input class="dep-edit-input" type="number" value="${d.doo}" min="0" step="0.01" onchange="editVal(${d.id},'doo',this.value)"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Bebou (€)</span>
+          <input class="dep-edit-input" type="number" value="${d.bebou}" min="0" step="0.01" onchange="editVal(${d.id},'bebou',this.value)"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Jour</span>
+          <input class="dep-edit-input" type="number" value="${d.date}" min="0" max="31" step="1" onchange="editVal(${d.id},'date',this.value)" style="width:55px;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px;">
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Compte débité</span>
+          <select style="padding:6px 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);outline:none;width:100%;" onchange="editVal(${d.id},'compte',this.value)">${optHtml}</select>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function editVal(id,who,val){
+  const d=depenses.find(x=>x.id===id);
+  if(d){
+    if(who==='doo'||who==='bebou') d[who]=parseFloat(val)||0;
+    else if(who==='date') d[who]=parseInt(val)||0;
+    else d[who]=val;
+    updateAll();
+  }
+}
+
+function addDepense(){
+  const name=document.getElementById('new-name').value.trim();
+  const doo=parseFloat(document.getElementById('new-doo').value)||0;
+  const bebou=parseFloat(document.getElementById('new-bebou').value)||0;
+  const date=parseInt(document.getElementById('new-date').value)||0;
+  const cat=document.getElementById('new-cat').value;
+  const compte=document.getElementById('new-compte').value;
+  const msg=document.getElementById('dep-msg');
+  if(!name){msg.style.color='var(--red)';msg.textContent='Veuillez entrer un nom.';return;}
+  if(doo===0&&bebou===0){msg.style.color='var(--red)';msg.textContent='Entrez au moins un montant.';return;}
+  depenses.push({id:Date.now(),name,doo,bebou,cat,compte,date});
+  document.getElementById('new-name').value='';
+  document.getElementById('new-doo').value='';
+  document.getElementById('new-bebou').value='';
+  document.getElementById('new-date').value='';
+  msg.style.color='var(--green)';msg.textContent='✓ Ajoutée !';
+  setTimeout(()=>{msg.textContent='';},2000);
+  updateAll();
+}
+
+function deleteDepense(id){
+  if(!confirm('Supprimer cette dépense ?'))return;
+  depenses=depenses.filter(d=>d.id!==id);
+  updateAll();
+}
+
+function exportJSON(){
+  const data={
+    salaires:{doo:parseFloat(document.getElementById('sal-doo').value)||0,bebou:parseFloat(document.getElementById('sal-bebou').value)||0},
+    depenses:depenses
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`budget-famille-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function importJSON(event){
+  const file=event.target.files[0];
+  const msg=document.getElementById('import-msg');
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.salaires){
+        document.getElementById('sal-doo').value=data.salaires.doo||0;
+        document.getElementById('sal-bebou').value=data.salaires.bebou||0;
+      }
+      if(data.depenses&&Array.isArray(data.depenses)) depenses=data.depenses;
+      updateAll();
+      msg.style.color='var(--green)'; msg.textContent='✓ Données restaurées !';
+      setTimeout(()=>{msg.textContent='';},3000);
+    }catch(err){
+      msg.style.color='var(--red)'; msg.textContent='Erreur : fichier JSON invalide.';
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function updateAll(){updateVue();updateDepenses();updateComptes();updateReglages();}
+
+function switchPage(name){
+  ['vue','depenses','comptes','reglages'].forEach((p,i)=>{
+    document.getElementById('page-'+p).style.display=p===name?'':'none';
+    document.querySelectorAll('.tnav')[i].className='tnav'+(p===name?' active':'');
+  });
+}
+
+document.getElementById('pwd-input').focus();
+</script>
+</body>
+</html>
